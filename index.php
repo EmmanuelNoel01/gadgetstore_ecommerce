@@ -78,7 +78,7 @@ $price_min = isset($_GET['price_min']) ? (float) $_GET['price_min'] : 0;
 $price_max = isset($_GET['price_max']) ? (float) $_GET['price_max'] : 10000000;
 $search_query = isset($_GET['search']) ? sanitize($_GET['search']) : '';
 
-$products_per_page = 21;
+$products_per_page = 24;
 $current_page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $offset = ($current_page - 1) * $products_per_page;
 
@@ -92,7 +92,7 @@ if ($price_min > 0) {
     $sql .= " AND price >= $price_min";
 }
 
-if ($price_max > 0 && $price_max < 10000) {
+if ($price_max > 0 && $price_max < 10000000) {
     $sql .= " AND price <= $price_max";
 }
 
@@ -100,7 +100,7 @@ if (!empty($search_query)) {
     $sql .= " AND name LIKE '%$search_query%'";
 }
 
-$sql .= " LIMIT $products_per_page OFFSET $offset";
+$sql .= " ORDER BY created_at DESC, id DESC LIMIT $products_per_page OFFSET $offset";
 
 $result = $conn->query($sql);
 $products = [];
@@ -121,7 +121,7 @@ if ($price_min > 0) {
     $count_sql .= " AND price >= $price_min";
 }
 
-if ($price_max > 0 && $price_max < 10000) {
+if ($price_max > 0 && $price_max < 10000000) {
     $count_sql .= " AND price <= $price_max";
 }
 
@@ -152,20 +152,21 @@ $csrf_token = generateCSRFToken();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        #load-more-btn {
-            border: 2px solid #03246b;
+        #load-more-link {
             color: #03246b;
             font-weight: 600;
-            padding: 10px 30px;
-            border-radius: 25px;
+            font-size: 0.9rem;
             transition: all 0.3s;
-            text-decoration: underline;
         }
 
-        #load-more-btn:hover {
-            background-color: #03246b;
-            color: white;
-            text-decoration: none;
+        #load-more-link:hover {
+            color: #021a4d;
+            text-decoration: underline !important;
+        }
+
+        .disabled {
+            opacity: 0.6;
+            pointer-events: none;
         }
 
         :root {
@@ -281,18 +282,57 @@ $csrf_token = generateCSRFToken();
             font-size: 1rem;
             margin-top: 10px;
         }
+
+        /* Add this to your existing CSS */
+        .carousel-indicators {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            list-style: none;
+        }
+
+        .carousel-indicators button {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: none;
+            margin: 0 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-indicators .active {
+            background-color: #fff;
+            transform: scale(1.2);
+        }
+
+        .carousel {
+            position: relative;
+        }
+
+        .product-image {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
     </style>
 </head>
 
 <body>
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success"><?php echo $_SESSION['success'];
-        unset($_SESSION['success']); ?></div>
+                                            unset($_SESSION['success']); ?></div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger"><?php echo $_SESSION['error'];
-        unset($_SESSION['error']); ?></div>
+                                        unset($_SESSION['error']); ?></div>
     <?php endif; ?>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
@@ -438,12 +478,12 @@ $csrf_token = generateCSRFToken();
                             value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
                         <div class="mb-3">
                             <label for="priceRange" class="form-label">Price Range: UGX. <span
-                                    id="priceValue">5000</span></label>
-                            <input type="range" class="form-range price-range" min="0" max="5000" step="100"
-                                value="5000" id="priceRange" name="price_max">
+                                    id="priceValue">10,000,000</span></label>
+                            <input type="range" class="form-range price-range" min="0" max="10000000" step="50000"
+                                value="10000000" id="priceRange" name="price_max">
                             <div class="d-flex justify-content-between">
                                 <span>UGX. 0</span>
-                                <span>UGX. 5000</span>
+                                <span>UGX. 10,000,000</span>
                             </div>
                         </div>
 
@@ -467,13 +507,13 @@ $csrf_token = generateCSRFToken();
                         <div class="mb-3">
                             <label for="price_min" class="form-label">Min Price</label>
                             <input type="number" class="form-control" id="price_min" name="price_min"
-                                value="<?php echo $price_min; ?>" min="0" max="5000">
+                                value="<?php echo $price_min; ?>" min="0" max="10000000">
                         </div>
 
                         <div class="mb-3">
                             <label for="price_max" class="form-label">Max Price</label>
                             <input type="number" class="form-control" id="price_max" name="price_max"
-                                value="<?php echo $price_max; ?>" min="0" max="5000">
+                                value="<?php echo $price_max; ?>" min="0" max="10000000">
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
@@ -486,20 +526,54 @@ $csrf_token = generateCSRFToken();
                 <div class="row" id="products-container">
                     <?php if (!empty($products)): ?>
                         <?php foreach ($products as $product): ?>
+                            <!-- In the products loop in index.php, replace the image section with: -->
                             <div class="col-md-4 mb-4">
-                                <div class="card h-100">
-                                    <img src="<?php echo htmlspecialchars($product['image_url'] ?? 'assets/images/default.png'); ?>"
-                                        class="card-img-top product-image"
-                                        alt="<?php echo htmlspecialchars($product['name'] ?? 'Product'); ?>">
+                                <div class="card h-100 product-card">
+                                    <?php
+                                    // Get all images for this product
+                                    $product_id = $product['id'];
+                                    $image_result = $conn->query("SELECT * FROM product_images WHERE product_id = $product_id ORDER BY sort_order");
+                                    $product_images = [];
+                                    while ($image_row = $image_result->fetch_assoc()) {
+                                        $product_images[] = $image_row;
+                                    }
+                                    ?>
+
+                                    <?php if (!empty($product_images)): ?>
+                                        <div id="productCarousel<?php echo $product_id; ?>" class="carousel slide" data-bs-ride="carousel">
+                                            <div class="carousel-inner">
+                                                <?php foreach ($product_images as $index => $image): ?>
+                                                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                                                        <img src="<?php echo htmlspecialchars($image['image_url']); ?>"
+                                                            class="card-img-top product-image"
+                                                            alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+
+                                            <?php if (count($product_images) > 1): ?>
+                                                <!-- Carousel indicators (dots) -->
+                                                <div class="carousel-indicators">
+                                                    <?php foreach ($product_images as $index => $image): ?>
+                                                        <button type="button"
+                                                            data-bs-target="#productCarousel<?php echo $product_id; ?>"
+                                                            data-bs-slide-to="<?php echo $index; ?>"
+                                                            class="<?php echo $index === 0 ? 'active' : ''; ?>"
+                                                            aria-current="<?php echo $index === 0 ? 'true' : 'false'; ?>"
+                                                            aria-label="Slide <?php echo $index + 1; ?>"></button>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <img src="<?php echo htmlspecialchars($product['image_url'] ?? 'assets/images/default.png'); ?>"
+                                            class="card-img-top product-image"
+                                            alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                    <?php endif; ?>
 
                                     <div class="card-body">
-                                        <h5 class="card-title">
-                                            <?php echo htmlspecialchars($product['name'] ?? 'Unnamed Product'); ?>
-                                        </h5>
-
-                                        <p class="card-text">
-                                            UGX. <?php echo number_format((float) ($product['price'] ?? 0)); ?>
-                                        </p>
+                                        <h5 class="card-title"><?php echo htmlspecialchars($product['name']); ?></h5>
+                                        <p class="card-text">UGX. <?php echo number_format((float)$product['price']); ?></p>
 
                                         <form method="post" action="">
                                             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
@@ -510,7 +584,6 @@ $csrf_token = generateCSRFToken();
                                                 Add to Cart
                                             </button>
                                         </form>
-
                                     </div>
                                 </div>
                             </div>
@@ -521,10 +594,10 @@ $csrf_token = generateCSRFToken();
                 </div>
 
                 <?php if ($total_pages > $current_page): ?>
-                    <div class="text-center mt-4">
-                        <button id="load-more-btn" class="btn btn-outline-primary">
+                    <div class="text-end mt-4">
+                        <a href="#" id="load-more-link" class="text-primary text-decoration-underline fs-6 fw-semibold">
                             Show More
-                        </button>
+                        </a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -848,12 +921,12 @@ $csrf_token = generateCSRFToken();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const priceRange = document.getElementById('priceRange');
             const priceValue = document.getElementById('priceValue');
 
             if (priceRange && priceValue) {
-                priceRange.addEventListener('input', function () {
+                priceRange.addEventListener('input', function() {
                     priceValue.textContent = this.value;
                     document.getElementById('price_max').value = this.value;
                 });
@@ -865,14 +938,14 @@ $csrf_token = generateCSRFToken();
                 const plusBtn = control.querySelector('.quantity-plus');
                 const quantityInput = control.querySelector('.quantity-input');
 
-                minusBtn.addEventListener('click', function () {
+                minusBtn.addEventListener('click', function() {
                     let quantity = parseInt(quantityInput.value);
                     if (quantity > 1) {
                         quantityInput.value = quantity - 1;
                     }
                 });
 
-                plusBtn.addEventListener('click', function () {
+                plusBtn.addEventListener('click', function() {
                     let quantity = parseInt(quantityInput.value);
                     const max = parseInt(quantityInput.getAttribute('max')) || 100;
                     if (quantity < max) {
@@ -904,12 +977,14 @@ $csrf_token = generateCSRFToken();
             }, 3000);
         }
 
-        $(document).ready(function () {
-            $('.btn-add-to-cart').click(function (e) {
+        $(document).ready(function() {
+            $('.btn-add-to-cart').click(function(e) {
                 e.preventDefault();
                 let productId = $(this).data('product-id');
 
-                $.post('ajax_add_to_cart.php', { product_id: productId }, function (response) {
+                $.post('ajax_add_to_cart.php', {
+                    product_id: productId
+                }, function(response) {
                     if (response.status === 'success') {
                         let toastHtml = `
                     <div class="toast align-items-center text-bg-success border-0 position-fixed top-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
@@ -920,7 +995,9 @@ $csrf_token = generateCSRFToken();
                     </div>`;
                         $('body').append(toastHtml);
                         let toastEl = document.querySelector('.toast:last-child');
-                        let toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+                        let toast = new bootstrap.Toast(toastEl, {
+                            delay: 2000
+                        });
                         toast.show();
 
                         $('#cart-count').text(response.cart_count);
@@ -934,11 +1011,12 @@ $csrf_token = generateCSRFToken();
             const totalPages = <?php echo $total_pages; ?>;
             const loadingText = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
 
-            $(document).on('click', '#load-more-btn', function () {
-                const $btn = $(this);
+            $(document).on('click', '#load-more-link', function(e) {
+                e.preventDefault();
+                const $link = $(this);
                 const $productsContainer = $('#products-container');
 
-                $btn.html(loadingText).prop('disabled', true);
+                $link.html(loadingText).addClass('disabled');
 
                 const urlParams = new URLSearchParams(window.location.search);
                 urlParams.set('page', currentPage + 1);
@@ -946,24 +1024,24 @@ $csrf_token = generateCSRFToken();
                 $.ajax({
                     url: 'load_more_products.php?' + urlParams.toString(),
                     type: 'GET',
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             $productsContainer.append(response.html);
                             currentPage++;
 
                             if (currentPage >= totalPages) {
-                                $btn.hide();
+                                $link.hide();
                             } else {
-                                $btn.html('Show More').prop('disabled', false);
+                                $link.html('Show More').removeClass('disabled');
                             }
                         } else {
                             alert('Error loading more products');
-                            $btn.html('Show More').prop('disabled', false);
+                            $link.html('Show More').removeClass('disabled');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         alert('Error loading more products');
-                        $btn.html('Show More').prop('disabled', false);
+                        $link.html('Show More').removeClass('disabled');
                     }
                 });
             });
