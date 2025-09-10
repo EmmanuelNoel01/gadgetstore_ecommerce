@@ -379,25 +379,47 @@ $csrf_token = generateCSRFToken();
             justify-content: center;
             padding: 0.5rem;
         }
+
+        .logo-img {
+            max-height: 40px;
+            width: auto;
+            object-fit: contain;
+        }
     </style>
 </head>
 
 <body>
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success"><?php echo $_SESSION['success'];
-        unset($_SESSION['success']); ?></div>
+                                            unset($_SESSION['success']); ?></div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger"><?php echo $_SESSION['error'];
-        unset($_SESSION['error']); ?></div>
+                                        unset($_SESSION['error']); ?></div>
     <?php endif; ?>
+
+    <div class="bg-light border-bottom small py-1">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <div class="d-flex align-items-center mb-1 mb-md-0 text-muted">
+                <i class="fas fa-map-marker-alt text-primary me-2"></i> Mabirizi Complex Basement, Shop B-24, Kampala Road
+            </div>
+            <div class="d-flex align-items-center">
+                <i class="fas fa-phone-alt text-success me-2"></i>
+                <a href="tel:+256778485512" class="text-decoration-none text-dark fw-semibold">
+                    +256 706 839 462
+                </a>
+            </div>
+        </div>
+    </div>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
         <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-laptop-code"></i> Gadget Store
+            <a class="navbar-brand d-flex align-items-center" href="index.php">
+                <img src="assets/images/logo.jpg" alt="Gadget Store Logo" class="logo-img me-2">
+                <span>Gadget Store</span>
             </a>
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -408,7 +430,7 @@ $csrf_token = generateCSRFToken();
                         <input class="form-control me-2 product-search-input" type="search" name="search"
                             placeholder="Search products..."
                             value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                        <button class="btn btn-primary" type="submit">Search</button>
+                        <button class="btn btn-light text-primary fw-bold" type="submit">Search</button>
                     </div>
                 </form>
 
@@ -416,43 +438,17 @@ $csrf_token = generateCSRFToken();
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center position-relative" href="cart.php">
                             <i class="fas fa-shopping-cart me-1"></i> Cart
-                            <span
-                                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-light text-primary fw-bold"
                                 id="cart-count">
                                 <?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?>
                             </span>
                         </a>
                     </li>
-                    <?php if (isset($_SESSION['user_id']) && isAdmin()): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown"
-                                role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i> <?php echo $_SESSION['user_name']; ?>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item d-flex align-items-center" href="#" data-bs-toggle="modal"
-                                        data-bs-target="#adminModal">
-                                        <i class="fas fa-cog me-2"></i> Admin Dashboard
-                                    </a></li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="logout.php">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
-                                    </a></li>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center" href="admin.php">
-                                <i class="fas fa-sign-in-alt me-1"></i> <span>Admin</span>
-                            </a>
-                        </li>
-                    <?php endif; ?>
                 </ul>
             </div>
         </div>
     </nav>
+
 
     <div class="container mt-4">
         <?php
@@ -654,7 +650,48 @@ $csrf_token = generateCSRFToken();
 
         </div>
     </div>
+    <!-- Product Details Modal -->
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productDetailsModalLabel">Product Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img id="modalProductImage" src="" class="modal-product-image img-fluid" alt="Product Image">
+                        </div>
+                        <div class="col-md-6">
+                            <h3 id="modalProductName"></h3>
+                            <h4 class="text-primary" id="modalProductPrice"></h4>
+                            <p id="modalProductDescription"></p>
 
+                            <form method="post" action="" class="mt-4">
+                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                <input type="hidden" name="product_id" id="modalProductId">
+                                <div class="d-flex align-items-center mb-3">
+                                    <label class="me-2">Quantity:</label>
+                                    <div class="quantity-control d-flex">
+                                        <button type="button" class="btn btn-outline-secondary quantity-minus">-</button>
+                                        <input type="number" name="quantity" class="form-control quantity-input text-center mx-1" value="1" min="1" max="10" style="width: 60px;">
+                                        <button type="button" class="btn btn-outline-secondary quantity-plus">+</button>
+                                    </div>
+                                </div>
+                                <button type="submit" name="add_to_cart" class="btn btn-primary wider-add-to-cart">
+                                    <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row mb-5">
         <div class="col-12">
             <div class="card bg-dark text-white">
@@ -678,12 +715,12 @@ $csrf_token = generateCSRFToken();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const priceRange = document.getElementById('priceRange');
             const priceValue = document.getElementById('priceValue');
 
             if (priceRange && priceValue) {
-                priceRange.addEventListener('input', function () {
+                priceRange.addEventListener('input', function() {
                     priceValue.textContent = this.value;
                     document.getElementById('price_max').value = this.value;
                 });
@@ -695,14 +732,14 @@ $csrf_token = generateCSRFToken();
                 const plusBtn = control.querySelector('.quantity-plus');
                 const quantityInput = control.querySelector('.quantity-input');
 
-                minusBtn.addEventListener('click', function () {
+                minusBtn.addEventListener('click', function() {
                     let quantity = parseInt(quantityInput.value);
                     if (quantity > 1) {
                         quantityInput.value = quantity - 1;
                     }
                 });
 
-                plusBtn.addEventListener('click', function () {
+                plusBtn.addEventListener('click', function() {
                     let quantity = parseInt(quantityInput.value);
                     const max = parseInt(quantityInput.getAttribute('max')) || 100;
                     if (quantity < max) {
@@ -734,14 +771,14 @@ $csrf_token = generateCSRFToken();
             }, 3000);
         }
 
-        $(document).ready(function () {
-            $('.btn-add-to-cart').click(function (e) {
+        $(document).ready(function() {
+            $('.btn-add-to-cart').click(function(e) {
                 e.preventDefault();
                 let productId = $(this).data('product-id');
 
                 $.post('ajax_add_to_cart.php', {
                     product_id: productId
-                }, function (response) {
+                }, function(response) {
                     if (response.status === 'success') {
                         let toastHtml = `
                     <div class="toast align-items-center text-bg-success border-0 position-fixed top-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
@@ -764,7 +801,7 @@ $csrf_token = generateCSRFToken();
                 }, 'json');
             });
 
-            $('.view-details').click(function () {
+            $('.view-details').click(function() {
                 let productId = $(this).data('product-id');
 
                 $.ajax({
@@ -774,7 +811,7 @@ $csrf_token = generateCSRFToken();
                         product_id: productId
                     },
                     dataType: 'json',
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             $('#modalProductName').text(response.product.name);
                             $('#modalProductPrice').text('UGX. ' + parseFloat(response.product.price).toLocaleString());
@@ -787,7 +824,7 @@ $csrf_token = generateCSRFToken();
                             alert('Error loading product details: ' + response.message);
                         }
                     },
-                    error: function (xhr, status, error) {
+                    error: function(xhr, status, error) {
                         alert('Error loading product details. Please try again.');
                         console.error('AJAX Error:', status, error);
                     }
@@ -798,7 +835,7 @@ $csrf_token = generateCSRFToken();
             const totalPages = <?php echo $total_pages; ?>;
             const loadingText = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
 
-            $(document).on('click', '#load-more-link', function (e) {
+            $(document).on('click', '#load-more-link', function(e) {
                 e.preventDefault();
                 const $link = $(this);
                 const $productsContainer = $('#products-container');
@@ -811,7 +848,7 @@ $csrf_token = generateCSRFToken();
                 $.ajax({
                     url: 'load_more_products.php?' + urlParams.toString(),
                     type: 'GET',
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             $productsContainer.append(response.html);
                             currentPage++;
@@ -826,7 +863,7 @@ $csrf_token = generateCSRFToken();
                             $link.html('Show More').removeClass('disabled');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         alert('Error loading more products');
                         $link.html('Show More').removeClass('disabled');
                     }

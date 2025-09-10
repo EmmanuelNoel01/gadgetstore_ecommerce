@@ -3,13 +3,11 @@ require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF token validation
     if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
         $_SESSION['error'] = "Invalid form submission. Please try again.";
         redirect('cart.php');
     }
 
-    // Handle cart actions
     if (isset($_POST['update_quantity'])) {
         $product_id = (int) $_POST['product_id'];
         $quantity = (int) $_POST['quantity'];
@@ -27,15 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (isset($_POST['clear_cart'])) {
         clearCart();
-        $_SESSION['success'] = "Cart cleared successfully!";
+        $_SESSION['success'] = "Cart cleared successfully";
     } elseif (isset($_POST['checkout'])) {
         redirect('checkout.php');
     }
 
     redirect('cart.php');
 }
-
-// Generate CSRF token
 $csrf_token = generateCSRFToken();
 ?>
 
@@ -45,7 +41,7 @@ $csrf_token = generateCSRFToken();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping Cart - TechShop</title>
+    <title>Cart</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
 </head>
@@ -56,6 +52,180 @@ $csrf_token = generateCSRFToken();
     <title>Gadget Store</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head>
+
+<body>
+    <div class="bg-light border-bottom small py-1">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <div class="d-flex align-items-center mb-1 mb-md-0 text-muted">
+                <i class="fas fa-map-marker-alt text-primary me-2"></i> Mabirizi Complex Basement, Shop B-24, Kampala Road
+            </div>
+            <div class="d-flex align-items-center">
+                <i class="fas fa-phone-alt text-success me-2"></i>
+                <a href="tel:+256778485512" class="text-decoration-none text-dark fw-semibold">
+                    +256 778 485 512
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="index.php">
+                <img src="assets/images/logo.jpg" alt="Gadget Store Logo" class="logo-img me-2">
+                <span>Gadget Store</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- <form class="d-flex w-100" method="GET" action="index.php">
+                    <div class="input-group" style="max-width: 800px;">
+                        <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                        <input class="form-control me-2 product-search-input" type="search" name="search"
+                            placeholder="Search products..."
+                            value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+                        <button class="btn btn-light text-primary fw-bold" type="submit">Search</button>
+                    </div>
+                </form> -->
+
+                <ul class="navbar-nav ms-auto d-flex align-items-center flex-nowrap">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center position-relative" href="cart.php">
+                            <i class="fas fa-shopping-cart me-1"></i> Cart
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-light text-primary fw-bold"
+                                id="cart-count">
+                                <?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?>
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container py-5">
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <?php if (empty($_SESSION['cart'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 rounded-3 p-3 position-relative" role="alert" style="max-width: 500px; margin:auto; background-color: #f8d7da;">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-shopping-cart fa-lg text-danger"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-1 text-dark">Your cart is empty</h6>
+                        <p class="mb-0 text-muted">Click or Tap X to continue shopping</p>
+                    </div>
+                </div>
+                <a href="index.php" class="btn-close position-absolute top-0 end-0 m-3" aria-label="Close"></a>
+            </div>
+
+        <?php else: ?>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4>Shopping Cart</h4>
+                        </div>
+                        <div class="card-body">
+                            <?php
+                            $cart_items = $_SESSION['cart'] ?? [];
+                            $total_price = 0;
+
+                            if (!empty($cart_items)):
+                                foreach ($cart_items as $product_id => $item):
+                                    $id = $item['id'] ?? $product_id;
+                                    $name = $item['name'] ?? 'Unknown Product';
+                                    $price = $item['price'] ?? 0;
+                                    $image_url = $item['image_url'] ?? 'https://via.placeholder.com/80?text=No+Image';
+                                    $quantity = $item['quantity'] ?? 1;
+                                    $item_total = $price * $quantity;
+                                    $total_price += $item_total;
+
+                                    // Try to get the first image from product_images table if current image is placeholder
+                                    $display_image = $image_url;
+                                    if (empty($image_url) || $image_url === 'https://via.placeholder.com/80?text=No+Image') {
+                                        $image_sql = "SELECT image_url FROM product_images WHERE product_id = $id ORDER BY sort_order LIMIT 1";
+                                        $image_result = $conn->query($image_sql);
+                                        if ($image_result->num_rows > 0) {
+                                            $image_row = $image_result->fetch_assoc();
+                                            $display_image = $image_row['image_url'];
+                                        }
+                                    }
+                            ?>
+                                    <div class="row align-items-center border-bottom py-3">
+                                        <div class="col-md-2">
+                                            <img src="<?php echo htmlspecialchars($display_image); ?>" class="product-image" alt="<?php echo htmlspecialchars($name); ?>" onerror="this.src='https://via.placeholder.com/80?text=No+Image'">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h5><?php echo htmlspecialchars($name); ?></h5>
+                                            <p class="text-muted">UGX <?php echo number_format($price); ?></p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <p><strong>Quantity: <?php echo $quantity; ?></strong></p>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>UGX <?php echo number_format($item_total); ?></strong>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <form method="POST" action="">
+                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                <input type="hidden" name="product_id" value="<?= $id ?>">
+                                                <button type="submit" name="remove_item" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                <?php endforeach;
+                            else: ?>
+                                <div class="text-center py-4">
+                                    <p>Your cart is empty</p>
+                                    <a href="index.php" class="btn btn-primary">Continue Shopping</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Order Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Items:</span>
+                                <span><?php echo !empty($cart_items) ? count($cart_items) : 0; ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <strong>Total:</strong>
+                                <strong>UGX <?php echo number_format($total_price); ?></strong>
+                            </div>
+                            <form method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                <?php if (!empty($cart_items)): ?>
+                                    <button type="submit" name="clear_cart" class="btn btn-warning w-100 mb-2">Clear Cart</button>
+                                    <button type="submit" name="checkout" class="btn btn-success w-100">Proceed to Checkout</button>
+                                <?php else: ?>
+                                    <a href="index.php" class="btn btn-primary w-100">Continue Shopping</a>
+                                <?php endif; ?>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
     <style>
         #load-more-link {
             color: #03246b;
@@ -188,7 +358,6 @@ $csrf_token = generateCSRFToken();
             margin-top: 10px;
         }
 
-        /* Add this to your existing CSS */
         .carousel-indicators {
             position: absolute;
             bottom: 10px;
@@ -226,179 +395,58 @@ $csrf_token = generateCSRFToken();
             object-fit: cover;
             width: 100%;
         }
+
+        .btn-details {
+            width: 44px;
+            flex-shrink: 0;
+        }
+
+        .btn-details:hover {
+            background-color: #5a6268;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+            height: 44px;
+        }
+
+        .product-actions form {
+            margin: 0;
+            flex: 1;
+            height: 100%;
+        }
+
+        .product-actions button {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-product-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            margin-bottom: 20px;
+        }
+
+        .btn-add-to-cart,
+        .btn-details {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        .logo-img {
+            max-height: 40px;
+            width: auto;
+            object-fit: contain;
+        }
     </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
-        <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-laptop-code"></i> Gadget Store
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- <form class="d-flex w-100" method="GET" action="index.php">
-                    <div class="input-group" style="max-width: 800px;">
-                        <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
-                        <input class="form-control me-2 product-search-input" type="search" name="search"
-                            placeholder="Search products..."
-                            value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                        <button class="btn btn-primary" type="submit">Search</button>
-                    </div>
-                </form> -->
-
-                <ul class="navbar-nav ms-auto d-flex align-items-center flex-nowrap">
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center" href="cart.php">
-                            <i class="fas fa-shopping-cart me-1"></i> Cart
-                            <span class="badge bg-primary ms-1" id="cart-count">
-                                <?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?>
-                            </span>
-                        </a>
-                    </li>
-                    <?php if (isset($_SESSION['user_id']) && isAdmin()): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown"
-                                role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i> <?php echo $_SESSION['user_name']; ?>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item d-flex align-items-center" href="#" data-bs-toggle="modal"
-                                        data-bs-target="#adminModal">
-                                        <i class="fas fa-cog me-2"></i> Admin Dashboard
-                                    </a></li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="logout.php">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
-                                    </a></li>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center" href="admin.php">
-                                <i class="fas fa-sign-in-alt me-1"></i> <span>Admin</span>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <div class="container py-5">
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
-
-        <?php if (empty($_SESSION['cart'])): ?>
-            <div class="alert alert-info">
-                Your cart is empty. <a href="index.php">Continue shopping</a>
-            </div>
-        <?php else: ?>
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h4>Shopping Cart</h4>
-                        </div>
-                        <div class="card-body">
-                            <?php
-                            $cart_items = $_SESSION['cart'] ?? [];
-                            $total_price = 0;
-
-                            if (!empty($cart_items)):
-                                foreach ($cart_items as $product_id => $item):
-                                    $id = $item['id'] ?? $product_id;
-                                    $name = $item['name'] ?? 'Unknown Product';
-                                    $price = $item['price'] ?? 0;
-                                    $image_url = $item['image_url'] ?? 'https://via.placeholder.com/80?text=No+Image';
-                                    $quantity = $item['quantity'] ?? 1;
-                                    $item_total = $price * $quantity;
-                                    $total_price += $item_total;
-
-                                    // Try to get the first image from product_images table if current image is placeholder
-                                    $display_image = $image_url;
-                                    if (empty($image_url) || $image_url === 'https://via.placeholder.com/80?text=No+Image') {
-                                        $image_sql = "SELECT image_url FROM product_images WHERE product_id = $id ORDER BY sort_order LIMIT 1";
-                                        $image_result = $conn->query($image_sql);
-                                        if ($image_result->num_rows > 0) {
-                                            $image_row = $image_result->fetch_assoc();
-                                            $display_image = $image_row['image_url'];
-                                        }
-                                    }
-                            ?>
-                                    <div class="row align-items-center border-bottom py-3">
-                                        <div class="col-md-2">
-                                            <img src="<?php echo htmlspecialchars($display_image); ?>" class="product-image" alt="<?php echo htmlspecialchars($name); ?>" onerror="this.src='https://via.placeholder.com/80?text=No+Image'">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <h5><?php echo htmlspecialchars($name); ?></h5>
-                                            <p class="text-muted">UGX <?php echo number_format($price); ?></p>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <p><strong>Quantity: <?php echo $quantity; ?></strong></p>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <strong>UGX <?php echo number_format($item_total); ?></strong>
-                                        </div>
-                                        <div class="col-md-1">
-                                            <form method="POST" action="">
-                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                                                <input type="hidden" name="product_id" value="<?= $id ?>">
-                                                <button type="submit" name="remove_item" class="btn btn-sm btn-danger">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                <?php endforeach;
-                            else: ?>
-                                <div class="text-center py-4">
-                                    <p>Your cart is empty</p>
-                                    <a href="index.php" class="btn btn-primary">Continue Shopping</a>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Order Summary</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Items:</span>
-                                <span><?php echo !empty($cart_items) ? count($cart_items) : 0; ?></span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-3">
-                                <strong>Total:</strong>
-                                <strong>UGX <?php echo number_format($total_price); ?></strong>
-                            </div>
-                            <form method="POST" action="">
-                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                                <?php if (!empty($cart_items)): ?>
-                                    <button type="submit" name="clear_cart" class="btn btn-warning w-100 mb-2">Clear Cart</button>
-                                    <button type="submit" name="checkout" class="btn btn-success w-100">Proceed to Checkout</button>
-                                <?php else: ?>
-                                    <a href="index.php" class="btn btn-primary w-100">Continue Shopping</a>
-                                <?php endif; ?>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-    </div>
-
     <?php include 'includes/footer.php'; ?>
 </body>
 

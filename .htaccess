@@ -1,29 +1,22 @@
+# Enable rewriting
 RewriteEngine On
+RewriteBase /gadgetstore_ecommerce/
 
-# Remove .php extension from URLs
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}\.php -f
-RewriteRule ^(.*)$ $1.php [L]
+# 1. Redirect index.php to root
+RewriteCond %{THE_REQUEST} \s/index\.php [NC]
+RewriteRule ^index\.php$ /gadgetstore_ecommerce/ [R=301,L]
 
-# Rewrite rules for specific pages
-RewriteRule ^home$ index.php [L]
-RewriteRule ^admin$ admin/index.php [L]
+# 2. Remove .php extension from URLs (cart.php → /cart)
+RewriteCond %{THE_REQUEST} \s/([^.]+)\.php [NC]
+RewriteRule ^([^.]+)\.php$ /gadgetstore_ecommerce/$1 [R=301,L]
 
-# Rewrite rules for product pages
-RewriteRule ^products/([0-9]+)/?$ product-detail.php?id=$1 [NC,L]
-RewriteRule ^category/([a-zA-Z0-9-]+)/?$ products.php?category=$1 [NC,L]
+# Internally map /cart → cart.php, /checkout → checkout.php, etc.
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^/]+)/?$ $1.php [L]
 
-# Rewrite rules for user pages
-RewriteRule ^my-account/?$ profile.php [NC,L]
-RewriteRule ^my-orders/?$ orders.php [NC,L]
-RewriteRule ^wishlist/?$ wishlist.php [NC,L]
+# 3. Rewrite search queries
+# /search/iphone → index.php?search=iphone
+RewriteRule ^search/([^/]+)/?$ index.php?search=$1 [L,QSA]
 
-# Rewrite rules for admin pages
-RewriteRule ^admin/dashboard/?$ admin/dashboard.php [NC,L]
-RewriteRule ^admin/products/?$ admin/products.php [NC,L]
-RewriteRule ^admin/orders/?$ admin/orders.php [NC,L]
-RewriteRule ^admin/users/?$ admin/users.php [NC,L]
-RewriteRule ^admin/categories/?$ admin/categories.php [NC,L]
-
-# Custom error pages
-ErrorDocument 404 /404.php
+# Default document
+DirectoryIndex index.php
