@@ -70,46 +70,45 @@ function formatPrice($price)
 //     updateCartCount();
 // }
 
-function addToCart($product_id, $quantity = 1) {
+function addToCart($product_id, $quantity) {
     global $conn;
-
-    // Fetch product
-    $stmt = $conn->prepare("SELECT id, name, price FROM products WHERE id = ?");
-    if (!$stmt) return false; // Prepare failed
-
-    $stmt->bind_param("i", $product_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($product = $result->fetch_assoc()) {
-
-        // Ensure cart exists
-        if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
+    
+    $sql = "SELECT p.id, p.name, p.price, p.image_url, 
+                   COALESCE(pi.image_url, p.image_url) as display_image
+            FROM products p
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.sort_order = 0
+            WHERE p.id = $product_id
+            LIMIT 1";
+    
+    $result = $conn->query($sql);
+    
+    if ($result->num_rows > 0) {
+        $product = $result->fetch_assoc();
+        
+        if (!isset($_SESSION['cart'])) {
             $_SESSION['cart'] = [];
         }
-
-        // Ensure each product entry is an array
-        if (!isset($_SESSION['cart'][$product_id]) || !is_array($_SESSION['cart'][$product_id])) {
+        
+        if (isset($_SESSION['cart'][$product_id])) {
+            $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+        } else {
             $_SESSION['cart'][$product_id] = [
-                'id'       => $product['id'],
-                'name'     => $product['name'],
-                'price'    => $product['price'],
-                'quantity' => 0
+                'id' => $product['id'],
+                'name' => $product['name'],
+                'price' => $product['price'],
+                'image_url' => $product['display_image'] ?: $product['image_url'],
+                'quantity' => $quantity
             ];
         }
-
-        // Add quantity
-        $_SESSION['cart'][$product_id]['quantity'] += $quantity;
-
+        
         updateCartCount();
         return true;
     }
-
+    
     return false;
 }
 
 
-// Remove product from cart
 function removeFromCart($productId)
 {
     if (isset($_SESSION['cart'][$productId])) {

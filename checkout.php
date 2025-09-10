@@ -4,16 +4,14 @@ require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
 $pageTitle = "Checkout - TechShop";
-include 'includes/header.php';
+// include 'includes/header.php';
 
-// Redirect if cart is empty
 $cartItems = getCartItems();
 if (empty($cartItems)) {
     header('Location: cart.php');
     exit;
 }
 
-// Process checkout form
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $userData = [
         'first_name' => sanitize($_POST['first_name']),
@@ -30,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $orderId = processCheckout($userData);
 
     if ($orderId) {
-        clearCart(); // Clear cart after successful checkout
+        clearCart(); 
         header("Location: order-confirmation.php?id=$orderId");
         exit;
     } else {
@@ -38,34 +36,68 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
-
+<nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
+        <div class="container">
+            <a class="navbar-brand" href="index.php">
+                <i class="fas fa-laptop-code"></i> Gadget Store
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto d-flex align-items-center flex-nowrap">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center" href="cart.php">
+                            <i class="fas fa-shopping-cart me-1"></i> Cart
+                            <span class="badge bg-primary ms-1" id="cart-count">
+                                <?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?>
+                            </span>
+                        </a>
+                    </li>
+                    <?php if (isset($_SESSION['user_id']) && isAdmin()): ?>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown"
+                                role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i> <?php echo $_SESSION['user_name']; ?>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item d-flex align-items-center" href="#" data-bs-toggle="modal"
+                                        data-bs-target="#adminModal">
+                                        <i class="fas fa-cog me-2"></i> Admin Dashboard
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="logout.php">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                    </a></li>
+                            </ul>
+                        </li>
+                    <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center" href="admin.php">
+                                <i class="fas fa-sign-in-alt me-1"></i> <span>Admin</span>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </div>
+    </nav>
 <div class="container py-5">
-    <h2 class="mb-4">Checkout</h2>
-
     <div class="row">
         <div class="col-lg-8">
-            <!-- Shipping & Payment Form -->
             <div class="card mb-4">
                 <div class="card-body">
-                    <h5 class="card-title">Checkout Process</h5>
-
-                    <ul class="nav nav-pills justify-content-center checkout-steps mb-4">
-                        <li class="nav-item step active"><span class="nav-link">1. Shipping</span></li>
-                        <li class="nav-item step"><span class="nav-link">2. Payment</span></li>
-                        <li class="nav-item step"><span class="nav-link">3. Confirmation</span></li>
-                    </ul>
-
                     <?php if (isset($error)): ?>
                         <div class="alert alert-danger"><?= $error ?></div>
                     <?php endif; ?>
 
                     <form method="POST" action="">
-                        <!-- Shipping fields -->
-                        <h6 class="mb-3">Shipping Information</h6>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="first_name" class="form-label">First Name</label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="last_name" class="form-label">Last Name</label>
@@ -92,14 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <input type="text" class="form-control" id="city" name="city" required>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="state" class="form-label">State</label>
-                                <select class="form-control" id="state" name="state" required>
-                                    <option value="">Choose...</option>
-                                    <option value="CA">California</option>
-                                    <option value="NY">New York</option>
-                                    <option value="TX">Texas</option>
-                                    <option value="FL">Florida</option>
-                                </select>
+                                <label for="city" class="form-label">State</label>
+                                <input type="text" class="form-control" id="city" name="city" required>
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label for="zip" class="form-label">Zip</label>
@@ -112,15 +138,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <h6 class="mb-3">Payment Method</h6>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="payment_method" id="credit" value="credit" checked>
-                            <label class="form-check-label" for="credit">Credit card</label>
+                            <label class="form-check-label" for="credit">Cash</label>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="payment_method" id="debit" value="debit">
-                            <label class="form-check-label" for="debit">Debit card</label>
-                        </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="payment_method" id="paypal" value="paypal">
-                            <label class="form-check-label" for="paypal">PayPal</label>
+                            <label class="form-check-label" for="debit">Mobile Money</label>
                         </div>
 
                         <hr class="my-4">
@@ -167,5 +189,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 </div>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php include 'includes/footer.php'; ?>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 08, 2025 at 08:12 PM
+-- Generation Time: Sep 10, 2025 at 02:23 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -20,6 +20,30 @@ SET time_zone = "+00:00";
 --
 -- Database: `ecommerce_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `carousel_items`
+--
+
+CREATE TABLE `carousel_items` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `image_url` varchar(500) NOT NULL,
+  `button_text` varchar(50) DEFAULT 'Shop Now',
+  `sort_order` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `carousel_items`
+--
+
+INSERT INTO `carousel_items` (`id`, `title`, `description`, `image_url`, `button_text`, `sort_order`) VALUES
+(6, 'Phones', 'We sell the best phones in Kampala in all brands.', 'https://en.shiftdelete.net/wp-content/uploads/2025/04/iphone-17-pro-tasariminda-cam-ve-aluminyum-e1740306920290.jpg', 'Get Yours Now', 0),
+(7, 'Accessories', 'We have all the Accessories', 'https://images.stockcake.com/public/2/6/f/26fa12b1-a108-4288-a4d0-112257b70aa6_large/tech-gadget-display-stockcake.jpg', 'Equip Now', 0),
+(8, 'LapTops', 'LapTops are available.', 'https://www.stuff.tv/wp-content/uploads/sites/2/2021/04/Stuff-Best-Laptop-Lead.png?resize=1080,720', 'Shop Now', 0);
 
 -- --------------------------------------------------------
 
@@ -106,6 +130,48 @@ INSERT INTO `products` (`id`, `name`, `description`, `price`, `created_at`, `cat
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `product_images`
+--
+
+CREATE TABLE `product_images` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `image_url` varchar(255) NOT NULL,
+  `sort_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `product_images`
+--
+
+INSERT INTO `product_images` (`id`, `product_id`, `image_url`, `sort_order`, `created_at`) VALUES
+(1, 38, 'https://www.abanista.com/wp-content/uploads/2024/02/13-e1707165697416.jpg', 0, '2025-09-08 16:46:25'),
+(2, 38, 'https://www.abanista.com/wp-content/uploads/2024/02/11-e1707165607287.jpg', 1, '2025-09-08 16:46:25'),
+(3, 38, 'https://www.abanista.com/wp-content/uploads/2024/02/14.jpg', 2, '2025-09-08 16:46:25'),
+(4, 38, 'https://www.abanista.com/wp-content/uploads/2024/02/12-e1707165566473.jpg', 3, '2025-09-08 16:46:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `promo_images`
+--
+
+CREATE TABLE `promo_images` (
+  `id` int(11) NOT NULL,
+  `image_url` varchar(500) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `promo_images`
+--
+
+INSERT INTO `promo_images` (`id`, `image_url`) VALUES
+(1, 'https://images.stockcake.com/public/2/6/f/26fa12b1-a108-4288-a4d0-112257b70aa6_large/tech-gadget-display-stockcake.jpg');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -133,6 +199,12 @@ INSERT INTO `users` (`id`, `name`, `email`, `username`, `password`, `is_admin`, 
 --
 
 --
+-- Indexes for table `carousel_items`
+--
+ALTER TABLE `carousel_items`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `orders`
 --
 ALTER TABLE `orders`
@@ -153,6 +225,12 @@ ALTER TABLE `products`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `promo_images`
+--
+ALTER TABLE `promo_images`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -164,6 +242,12 @@ ALTER TABLE `users`
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `carousel_items`
+--
+ALTER TABLE `carousel_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `orders`
@@ -182,6 +266,12 @@ ALTER TABLE `order_items`
 --
 ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+
+--
+-- AUTO_INCREMENT for table `promo_images`
+--
+ALTER TABLE `promo_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`

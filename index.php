@@ -139,6 +139,20 @@ while ($row = $categories_result->fetch_assoc()) {
     $categories[] = $row['category'];
 }
 
+$carousel_items = [];
+$carousel_result = $conn->query("SELECT * FROM carousel_items ORDER BY sort_order");
+if ($carousel_result && $carousel_result->num_rows > 0) {
+    while ($row = $carousel_result->fetch_assoc()) {
+        $carousel_items[] = $row;
+    }
+}
+
+$promo_image = "";
+$promo_result = $conn->query("SELECT * FROM promo_images LIMIT 1");
+if ($promo_result && $promo_result->num_rows > 0) {
+    $promo_image = $promo_result->fetch_assoc()['image_url'];
+}
+
 $csrf_token = generateCSRFToken();
 ?>
 
@@ -283,7 +297,6 @@ $csrf_token = generateCSRFToken();
             margin-top: 10px;
         }
 
-        /* Add this to your existing CSS */
         .carousel-indicators {
             position: absolute;
             bottom: 10px;
@@ -321,18 +334,63 @@ $csrf_token = generateCSRFToken();
             object-fit: cover;
             width: 100%;
         }
+
+        .btn-details {
+            width: 44px;
+            flex-shrink: 0;
+        }
+
+        .btn-details:hover {
+            background-color: #5a6268;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+            height: 44px;
+        }
+
+        .product-actions form {
+            margin: 0;
+            flex: 1;
+            height: 100%;
+        }
+
+        .product-actions button {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-product-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            margin-bottom: 20px;
+        }
+
+        .btn-add-to-cart,
+        .btn-details {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
     </style>
 </head>
 
 <body>
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success"><?php echo $_SESSION['success'];
-                                            unset($_SESSION['success']); ?></div>
+        unset($_SESSION['success']); ?></div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger"><?php echo $_SESSION['error'];
-                                        unset($_SESSION['error']); ?></div>
+        unset($_SESSION['error']); ?></div>
     <?php endif; ?>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
@@ -356,9 +414,11 @@ $csrf_token = generateCSRFToken();
 
                 <ul class="navbar-nav ms-auto d-flex align-items-center flex-nowrap">
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center" href="cart.php">
+                        <a class="nav-link d-flex align-items-center position-relative" href="cart.php">
                             <i class="fas fa-shopping-cart me-1"></i> Cart
-                            <span class="badge bg-primary ms-1" id="cart-count">
+                            <span
+                                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
+                                id="cart-count">
                                 <?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?>
                             </span>
                         </a>
@@ -417,39 +477,23 @@ $csrf_token = generateCSRFToken();
             <div class="col-12">
                 <div id="mainCarousel" class="carousel slide" data-bs-ride="carousel">
                     <div class="carousel-indicators">
-                        <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="0"
-                            class="active"></button>
-                        <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="1"></button>
-                        <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="2"></button>
+                        <?php for ($i = 0; $i < count($carousel_items); $i++): ?>
+                            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="<?php echo $i; ?>"
+                                class="<?php echo $i === 0 ? 'active' : ''; ?>"></button>
+                        <?php endfor; ?>
                     </div>
                     <div class="carousel-inner rounded shadow">
-                        <div class="carousel-item active">
-                            <img src="https://images.unsplash.com/photo-1498049794561-7780e7231661?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1670&q=80"
-                                class="d-block w-100" alt="Tech Sale" style="height: 400px; object-fit: cover;">
-                            <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-4">
-                                <h2>Gadget Sale</h2>
-                                <p>Check out the latest Gadgets in stock</p>
-                                <a href="#products" class="btn btn-primary">Shop Now</a>
+                        <?php foreach ($carousel_items as $index => $item): ?>
+                            <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                                <img src="<?php echo htmlspecialchars($item['image_url']); ?>"
+                                    class="d-block w-100" alt="<?php echo htmlspecialchars($item['title']); ?>" style="height: 400px; object-fit: cover;">
+                                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-4">
+                                    <h2><?php echo htmlspecialchars($item['title']); ?></h2>
+                                    <p><?php echo htmlspecialchars($item['description']); ?></p>
+                                    <a href="#products" class="btn btn-primary"><?php echo htmlspecialchars($item['button_text']); ?></a>
+                                </div>
                             </div>
-                        </div>
-                        <div class="carousel-item">
-                            <img src="https://images.unsplash.com/photo-1516387938699-a93567ec168e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1670&q=80"
-                                class="d-block w-100" alt="New Laptops" style="height: 400px; object-fit: cover;">
-                            <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-4">
-                                <h2>New Laptop Collection</h2>
-                                <p>Check out the latest models from top brands.</p>
-                                <a href="#products" class="btn btn-primary">Explore</a>
-                            </div>
-                        </div>
-                        <div class="carousel-item">
-                            <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1670&q=80"
-                                class="d-block w-100" alt="Accessories" style="height: 400px; object-fit: cover;">
-                            <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-4">
-                                <h2>Premium Accessories</h2>
-                                <p>Upgrade your setup with our premium accessories.</p>
-                                <a href="#products" class="btn btn-primary">Discover</a>
-                            </div>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                     <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel"
                         data-bs-slide="prev">
@@ -526,11 +570,9 @@ $csrf_token = generateCSRFToken();
                 <div class="row" id="products-container">
                     <?php if (!empty($products)): ?>
                         <?php foreach ($products as $product): ?>
-                            <!-- In the products loop in index.php, replace the image section with: -->
                             <div class="col-md-4 mb-4">
                                 <div class="card h-100 product-card">
                                     <?php
-                                    // Get all images for this product
                                     $product_id = $product['id'];
                                     $image_result = $conn->query("SELECT * FROM product_images WHERE product_id = $product_id ORDER BY sort_order");
                                     $product_images = [];
@@ -540,7 +582,8 @@ $csrf_token = generateCSRFToken();
                                     ?>
 
                                     <?php if (!empty($product_images)): ?>
-                                        <div id="productCarousel<?php echo $product_id; ?>" class="carousel slide" data-bs-ride="carousel">
+                                        <div id="productCarousel<?php echo $product_id; ?>" class="carousel slide"
+                                            data-bs-ride="carousel">
                                             <div class="carousel-inner">
                                                 <?php foreach ($product_images as $index => $image): ?>
                                                     <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
@@ -552,11 +595,9 @@ $csrf_token = generateCSRFToken();
                                             </div>
 
                                             <?php if (count($product_images) > 1): ?>
-                                                <!-- Carousel indicators (dots) -->
                                                 <div class="carousel-indicators">
                                                     <?php foreach ($product_images as $index => $image): ?>
-                                                        <button type="button"
-                                                            data-bs-target="#productCarousel<?php echo $product_id; ?>"
+                                                        <button type="button" data-bs-target="#productCarousel<?php echo $product_id; ?>"
                                                             data-bs-slide-to="<?php echo $index; ?>"
                                                             class="<?php echo $index === 0 ? 'active' : ''; ?>"
                                                             aria-current="<?php echo $index === 0 ? 'true' : 'false'; ?>"
@@ -573,17 +614,26 @@ $csrf_token = generateCSRFToken();
 
                                     <div class="card-body">
                                         <h5 class="card-title"><?php echo htmlspecialchars($product['name']); ?></h5>
-                                        <p class="card-text">UGX. <?php echo number_format((float)$product['price']); ?></p>
+                                        <p class="card-text">UGX. <?php echo number_format((float) $product['price']); ?></p>
 
-                                        <form method="post" action="">
-                                            <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                            <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                                            <input type="hidden" name="quantity" value="1">
-                                            <button class="btn btn-primary wider-add-to-cart btn-add-to-cart"
+                                        <div class="product-actions">
+                                            <form method="post" action="" class="flex-fill">
+                                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                                <input type="hidden" name="quantity" value="1">
+                                                <button class="btn btn-primary w-100 btn-add-to-cart"
+                                                    data-product-id="<?php echo $product['id']; ?>">
+                                                    <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                                                </button>
+                                            </form>
+
+                                            <button class="btn btn-secondary btn-details view-details ms-2"
                                                 data-product-id="<?php echo $product['id']; ?>">
-                                                Add to Cart
+                                                <i class="fas fa-info-circle"></i>
                                             </button>
-                                        </form>
+                                        </div>
+
+
                                     </div>
                                 </div>
                             </div>
@@ -608,7 +658,7 @@ $csrf_token = generateCSRFToken();
     <div class="row mb-5">
         <div class="col-12">
             <div class="card bg-dark text-white">
-                <img src="https://images.unsplash.com/photo-1607083206968-13611e3d76db?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1670&q=80"
+                <img src="<?php echo !empty($promo_image) ? htmlspecialchars($promo_image) : 'https://images.unsplash.com/photo-1607083206968-13611e3d76db?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1670&q=80'; ?>"
                     class="card-img" alt="Summer Sale" style="height: 300px; object-fit: cover; opacity: 0.6;">
                 <div class="card-img-overlay d-flex flex-column justify-content-center text-center">
                     <h2 class="card-title">Summer Tech Sale</h2>
@@ -622,311 +672,18 @@ $csrf_token = generateCSRFToken();
         </div>
     </div>
     </div>
+    <?php include 'includes/footer.php'; ?>
 
-    <footer class="bg-dark text-white pt-5 pb-4 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-3 col-lg-3 col-xl-3 mx-auto mt-3">
-                    <h5 class="text-uppercase mb-4 font-weight-bold"><b>Gadget Store</b></h5>
-                    <p>Your one-stop shop for all electronics and tech gadgets. We offer the best products at
-                        competitive prices.</p>
-                    <div class="mt-3">
-                        <a href="#" class="text-white me-2"><i class="fab fa-facebook-f fa-lg"></i></a>
-                        <a href="#" class="text-white me-2"><i class="fab fa-twitter fa-lg"></i></a>
-                        <a href="#" class="text-white me-2"><i class="fab fa-instagram fa-lg"></i></a>
-                        <a href="#" class="text-white me-2"><i class="fab fa-linkedin-in fa-lg"></i></a>
-                    </div>
-                </div>
-                <div class="col-md-2 col-lg-2 col-xl-2 mx-auto mt-3">
-                    <h5 class="text-uppercase mb-4 font-weight-bold"><b>Products</b></h5>
-                    <p><a href="#products" class="text-white text-decoration-none">Laptops</a></p>
-                    <p><a href="#products" class="text-white text-decoration-none">Smartphones</a></p>
-                    <p><a href="#products" class="text-white text-decoration-none">Tablets</a></p>
-                    <p><a href="#products" class="text-white text-decoration-none">Accessories</a></p>
-                </div>
-                <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mt-3">
-                    <h5 class="text-uppercase mb-4 font-weight-bold"><b>Useful links</b></h5>
-                    <p><a href="#" class="text-white text-decoration-none">Your Account</a></p>
-                    <p><a href="#" class="text-white text-decoration-none">Become an Affiliate</a></p>
-                    <p><a href="#" class="text-white text-decoration-none">Shipping Rates</a></p>
-                    <p><a href="#" class="text-white text-decoration-none">Help</a></p>
-                </div>
-                <div class="col-md-4 col-lg-3 col-xl-3 mx-auto mt-3">
-                    <h5 class="text-uppercase mb-4 font-weight-bold"><b>Contact</b></h5>
-                    <p><i class="fas fa-home me-3"></i> Kampala Road, Mabirizi Complex</p>
-                    <p><i class="fas fa-envelope me-3"></i> info@GadgetStore.com</p>
-                    <p><i class="fas fa-phone me-3"></i> + 1 234 567 88</p>
-                    <p><i class="fas fa-print me-3"></i> + 1 234 567 89</p>
-                </div>
-            </div>
-            <hr class="my-4">
-            <div class="row align-items-center">
-                <div class="col-md-7 col-lg-8">
-                    <p>Copyright ©2023 All rights reserved by:
-                        <a href="#" class="text-white text-decoration-none"><strong>Gadget Store</strong></a>
-                    </p>
-                </div>
-                <div class="col-md-5 col-lg-4">
-                    <div class="text-center text-md-end">
-                        <ul class="list-unstyled list-inline">
-                            <li class="list-inline-item">
-                                <a href="#" class="btn-floating btn-sm text-white" style="font-size: 23px;"><i
-                                        class="fab fa-facebook-f"></i></a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="#" class="btn-floating btn-sm text-white" style="font-size: 23px;"><i
-                                        class="fab fa-twitter"></i></a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="#" class="btn-floating btn-sm text-white" style="font-size: 23px;"><i
-                                        class="fab fa-google-plus-g"></i></a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="#" class="btn-floating btn-sm text-white" style="font-size: 23px;"><i
-                                        class="fab fa-linkedin-in"></i></a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="#" class="btn-floating btn-sm text-white" style="font-size: 23px;"><i
-                                        class="fab fa-youtube"></i></a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
 
-    <?php if (isset($_SESSION['user_id']) && isAdmin()): ?>
-        <div class="modal fade" id="adminModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Admin Dashboard - Product Management</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="admin-container">
-                            <div class="admin-content">
-                                <h2 class="mb-4">Product Management</h2>
-
-                                <div class="card mb-4">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Add New Product</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <form method="POST" action="">
-                                            <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label for="name" class="form-label">Product Name</label>
-                                                        <input type="text" class="form-control" id="name" name="name"
-                                                            required>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="description" class="form-label">Description</label>
-                                                        <textarea class="form-control" id="description" name="description"
-                                                            rows="3" required></textarea>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="price" class="form-label">Price</label>
-                                                        <input type="number" step="0.01" class="form-control" id="price"
-                                                            name="price" required>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label for="category" class="form-label">Category</label>
-                                                        <select class="form-control" id="category" name="category" required>
-                                                            <option value="">Select Category</option>
-                                                            <option value="Laptops">Laptops</option>
-                                                            <option value="Smartphones">Smartphones</option>
-                                                            <option value="Tablets">Tablets</option>
-                                                            <option value="Accessories">Accessories</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="stock" class="form-label">Stock Quantity</label>
-                                                        <input type="number" class="form-control" id="stock" name="stock"
-                                                            required>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="image_url" class="form-label">Image URL</label>
-                                                        <input type="url" class="form-control" id="image_url"
-                                                            name="image_url" required>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button type="submit" name="add_product" class="btn btn-primary">Add
-                                                Product</button>
-                                        </form>
-                                    </div>
-                                </div>
-
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">All Products</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="table-responsive">
-                                            <table class="table table-bordered admin-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>ID</th>
-                                                        <th>Image</th>
-                                                        <th>Name</th>
-                                                        <th>Category</th>
-                                                        <th>Price</th>
-                                                        <th>Stock</th>
-                                                        <th>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php if (count($products) > 0): ?>
-                                                        <?php foreach ($products as $product): ?>
-                                                            <tr>
-                                                                <td><?php echo $product['id']; ?></td>
-                                                                <td><img src="<?php echo $product['image_url']; ?>" width="50"
-                                                                        alt="<?php echo $product['name']; ?>"></td>
-                                                                <td><?php echo $product['name']; ?></td>
-                                                                <td><?php echo $product['category']; ?></td>
-                                                                <td>$<?php echo number_format($product['price'], 2); ?></td>
-                                                                <td><?php echo $product['stock']; ?></td>
-                                                                <td>
-                                                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal"
-                                                                        data-bs-target="#editProductModal<?php echo $product['id']; ?>">Edit</button>
-                                                                    <form method="POST" action="" style="display: inline-block;">
-                                                                        <input type="hidden" name="csrf_token"
-                                                                            value="<?php echo $csrf_token; ?>">
-                                                                        <input type="hidden" name="id"
-                                                                            value="<?php echo $product['id']; ?>">
-                                                                        <button type="submit" name="delete_product"
-                                                                            class="btn btn-sm btn-danger"
-                                                                            onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
-                                                                    </form>
-                                                                </td>
-                                                            </tr>
-
-                                                            <div class="modal fade"
-                                                                id="editProductModal<?php echo $product['id']; ?>" tabindex="-1"
-                                                                aria-hidden="true">
-                                                                <div class="modal-dialog">
-                                                                    <div class="modal-content">
-                                                                        <div class="modal-header">
-                                                                            <h5 class="modal-title">Edit Product</h5>
-                                                                            <button type="button" class="btn-close"
-                                                                                data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                        </div>
-                                                                        <form method="POST" action="">
-                                                                            <div class="modal-body">
-                                                                                <input type="hidden" name="csrf_token"
-                                                                                    value="<?php echo $csrf_token; ?>">
-                                                                                <input type="hidden" name="id"
-                                                                                    value="<?php echo $product['id']; ?>">
-                                                                                <div class="mb-3">
-                                                                                    <label
-                                                                                        for="edit_name<?php echo $product['id']; ?>"
-                                                                                        class="form-label">Product Name</label>
-                                                                                    <input type="text" class="form-control"
-                                                                                        id="edit_name<?php echo $product['id']; ?>"
-                                                                                        name="name"
-                                                                                        value="<?php echo $product['name']; ?>"
-                                                                                        required>
-                                                                                </div>
-                                                                                <div class="mb-3">
-                                                                                    <label
-                                                                                        for="edit_description<?php echo $product['id']; ?>"
-                                                                                        class="form-label">Description</label>
-                                                                                    <textarea class="form-control"
-                                                                                        id="edit_description<?php echo $product['id']; ?>"
-                                                                                        name="description" rows="3"
-                                                                                        required><?php echo $product['description']; ?></textarea>
-                                                                                </div>
-                                                                                <div class="mb-3">
-                                                                                    <label
-                                                                                        for="edit_price<?php echo $product['id']; ?>"
-                                                                                        class="form-label">Price</label>
-                                                                                    <input type="number" step="0.01"
-                                                                                        class="form-control"
-                                                                                        id="edit_price<?php echo $product['id']; ?>"
-                                                                                        name="price"
-                                                                                        value="<?php echo $product['price']; ?>"
-                                                                                        required>
-                                                                                </div>
-                                                                                <div class="mb-3">
-                                                                                    <label
-                                                                                        for="edit_category<?php echo $product['id']; ?>"
-                                                                                        class="form-label">Category</label>
-                                                                                    <select class="form-control"
-                                                                                        id="edit_category<?php echo $product['id']; ?>"
-                                                                                        name="category" required>
-                                                                                        <option value="Laptops" <?php echo $product['category'] == 'Laptops' ? 'selected' : ''; ?>>Laptops</option>
-                                                                                        <option value="Smartphones" <?php echo $product['category'] == 'Smartphones' ? 'selected' : ''; ?>>Smartphones</option>
-                                                                                        <option value="Tablets" <?php echo $product['category'] == 'Tablets' ? 'selected' : ''; ?>>Tablets</option>
-                                                                                        <option value="Accessories" <?php echo $product['category'] == 'Accessories' ? 'selected' : ''; ?>>Accessories</option>
-                                                                                    </select>
-                                                                                </div>
-                                                                                <div class="mb-3">
-                                                                                    <label
-                                                                                        for="edit_stock<?php echo $product['id']; ?>"
-                                                                                        class="form-label">Stock Quantity</label>
-                                                                                    <input type="number" class="form-control"
-                                                                                        id="edit_stock<?php echo $product['id']; ?>"
-                                                                                        name="stock"
-                                                                                        value="<?php echo $product['stock']; ?>"
-                                                                                        required>
-                                                                                </div>
-                                                                                <div class="mb-3">
-                                                                                    <label
-                                                                                        for="edit_image_url<?php echo $product['id']; ?>"
-                                                                                        class="form-label">Image URL</label>
-                                                                                    <input type="url" class="form-control"
-                                                                                        id="edit_image_url<?php echo $product['id']; ?>"
-                                                                                        name="image_url"
-                                                                                        value="<?php echo $product['image_url']; ?>"
-                                                                                        required>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="modal-footer">
-                                                                                <button type="button" class="btn btn-secondary"
-                                                                                    data-bs-dismiss="modal">Cancel</button>
-                                                                                <button type="submit" name="update_product"
-                                                                                    class="btn btn-primary">Save Changes</button>
-                                                                            </div>
-                                                                        </form>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        <?php endforeach; ?>
-                                                    <?php else: ?>
-                                                        <tr>
-                                                            <td colspan="7" class="text-center">No products found</td>
-                                                        </tr>
-                                                    <?php endif; ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const priceRange = document.getElementById('priceRange');
             const priceValue = document.getElementById('priceValue');
 
             if (priceRange && priceValue) {
-                priceRange.addEventListener('input', function() {
+                priceRange.addEventListener('input', function () {
                     priceValue.textContent = this.value;
                     document.getElementById('price_max').value = this.value;
                 });
@@ -938,14 +695,14 @@ $csrf_token = generateCSRFToken();
                 const plusBtn = control.querySelector('.quantity-plus');
                 const quantityInput = control.querySelector('.quantity-input');
 
-                minusBtn.addEventListener('click', function() {
+                minusBtn.addEventListener('click', function () {
                     let quantity = parseInt(quantityInput.value);
                     if (quantity > 1) {
                         quantityInput.value = quantity - 1;
                     }
                 });
 
-                plusBtn.addEventListener('click', function() {
+                plusBtn.addEventListener('click', function () {
                     let quantity = parseInt(quantityInput.value);
                     const max = parseInt(quantityInput.getAttribute('max')) || 100;
                     if (quantity < max) {
@@ -977,14 +734,14 @@ $csrf_token = generateCSRFToken();
             }, 3000);
         }
 
-        $(document).ready(function() {
-            $('.btn-add-to-cart').click(function(e) {
+        $(document).ready(function () {
+            $('.btn-add-to-cart').click(function (e) {
                 e.preventDefault();
                 let productId = $(this).data('product-id');
 
                 $.post('ajax_add_to_cart.php', {
                     product_id: productId
-                }, function(response) {
+                }, function (response) {
                     if (response.status === 'success') {
                         let toastHtml = `
                     <div class="toast align-items-center text-bg-success border-0 position-fixed top-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
@@ -1007,11 +764,41 @@ $csrf_token = generateCSRFToken();
                 }, 'json');
             });
 
+            $('.view-details').click(function () {
+                let productId = $(this).data('product-id');
+
+                $.ajax({
+                    url: 'get_product_details.php',
+                    type: 'GET',
+                    data: {
+                        product_id: productId
+                    },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.success) {
+                            $('#modalProductName').text(response.product.name);
+                            $('#modalProductPrice').text('UGX. ' + parseFloat(response.product.price).toLocaleString());
+                            $('#modalProductDescription').text(response.product.description);
+                            $('#modalProductImage').attr('src', response.product.image_url);
+                            $('#modalProductId').val(response.product.id);
+
+                            $('#productDetailsModal').modal('show');
+                        } else {
+                            alert('Error loading product details: ' + response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        alert('Error loading product details. Please try again.');
+                        console.error('AJAX Error:', status, error);
+                    }
+                });
+            });
+
             let currentPage = <?php echo $current_page; ?>;
             const totalPages = <?php echo $total_pages; ?>;
             const loadingText = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
 
-            $(document).on('click', '#load-more-link', function(e) {
+            $(document).on('click', '#load-more-link', function (e) {
                 e.preventDefault();
                 const $link = $(this);
                 const $productsContainer = $('#products-container');
@@ -1024,7 +811,7 @@ $csrf_token = generateCSRFToken();
                 $.ajax({
                     url: 'load_more_products.php?' + urlParams.toString(),
                     type: 'GET',
-                    success: function(response) {
+                    success: function (response) {
                         if (response.success) {
                             $productsContainer.append(response.html);
                             currentPage++;
@@ -1039,7 +826,7 @@ $csrf_token = generateCSRFToken();
                             $link.html('Show More').removeClass('disabled');
                         }
                     },
-                    error: function() {
+                    error: function () {
                         alert('Error loading more products');
                         $link.html('Show More').removeClass('disabled');
                     }

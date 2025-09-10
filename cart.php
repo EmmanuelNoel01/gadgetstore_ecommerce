@@ -49,6 +49,7 @@ $csrf_token = generateCSRFToken();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
 </head>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -228,8 +229,7 @@ $csrf_token = generateCSRFToken();
     </style>
 </head>
 <body>
-   
-<nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow">
         <div class="container">
             <a class="navbar-brand" href="index.php">
                 <i class="fas fa-laptop-code"></i> Gadget Store
@@ -287,9 +287,7 @@ $csrf_token = generateCSRFToken();
             </div>
         </div>
     </nav>
-
     <div class="container py-5">
-
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
             <?php unset($_SESSION['success']); ?>
@@ -308,46 +306,91 @@ $csrf_token = generateCSRFToken();
             <div class="row">
                 <div class="col-md-8">
                     <div class="card">
+                        <div class="card-header">
+                            <h4>Shopping Cart</h4>
+                        </div>
                         <div class="card-body">
-                            <?php foreach (getCartItems() as $item):
-                                $id = $item['id'] ?? 0;
-                                $name = $item['name'] ?? 'Product';
-                                $price = $item['price'] ?? 0;
-                                $image = $item['image'] ?? 'default.png';
-                                ?>
-                                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                                    <div class="d-flex align-items-center">
-                                        <img src="uploads/<?= htmlspecialchars($image) ?>" width="60" class="me-3">
-                                        <div>
-                                            <strong><?= htmlspecialchars($name) ?></strong><br>
-                                            <?= number_format($price) ?>
+                            <?php
+                            $cart_items = $_SESSION['cart'] ?? [];
+                            $total_price = 0;
+
+                            if (!empty($cart_items)):
+                                foreach ($cart_items as $product_id => $item):
+                                    $id = $item['id'] ?? $product_id;
+                                    $name = $item['name'] ?? 'Unknown Product';
+                                    $price = $item['price'] ?? 0;
+                                    $image_url = $item['image_url'] ?? 'https://via.placeholder.com/80?text=No+Image';
+                                    $quantity = $item['quantity'] ?? 1;
+                                    $item_total = $price * $quantity;
+                                    $total_price += $item_total;
+
+                                    // Try to get the first image from product_images table if current image is placeholder
+                                    $display_image = $image_url;
+                                    if (empty($image_url) || $image_url === 'https://via.placeholder.com/80?text=No+Image') {
+                                        $image_sql = "SELECT image_url FROM product_images WHERE product_id = $id ORDER BY sort_order LIMIT 1";
+                                        $image_result = $conn->query($image_sql);
+                                        if ($image_result->num_rows > 0) {
+                                            $image_row = $image_result->fetch_assoc();
+                                            $display_image = $image_row['image_url'];
+                                        }
+                                    }
+                            ?>
+                                    <div class="row align-items-center border-bottom py-3">
+                                        <div class="col-md-2">
+                                            <img src="<?php echo htmlspecialchars($display_image); ?>" class="product-image" alt="<?php echo htmlspecialchars($name); ?>" onerror="this.src='https://via.placeholder.com/80?text=No+Image'">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h5><?php echo htmlspecialchars($name); ?></h5>
+                                            <p class="text-muted">UGX <?php echo number_format($price); ?></p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <p><strong>Quantity: <?php echo $quantity; ?></strong></p>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>UGX <?php echo number_format($item_total); ?></strong>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <form method="POST" action="">
+                                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                                <input type="hidden" name="product_id" value="<?= $id ?>">
+                                                <button type="submit" name="remove_item" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
-                                    <div>
-                                        <form action="cart.php" method="post" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                                            <input type="hidden" name="product_id" value="<?= (int) $id ?>">
-                                            <button type="submit" name="remove_item"
-                                                class="btn btn-sm btn-danger">Remove</button>
-                                        </form>
-                                    </div>
+                                <?php endforeach;
+                            else: ?>
+                                <div class="text-center py-4">
+                                    <p>Your cart is empty</p>
+                                    <a href="index.php" class="btn btn-primary">Continue Shopping</a>
                                 </div>
-                            <?php endforeach; ?>
-
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card">
+                        <div class="card-header">
+                            <h5>Order Summary</h5>
+                        </div>
                         <div class="card-body">
-                            <h5 class="card-title"><b>Order Summary</b></h5>
-                            <p>Total items: <?= getCartTotalItems() ?></p>
-                            <p>Total price: <b>UGX. </b><?= number_format(getCartTotalPrice()) ?></p>
-                            <form action="cart.php" method="post">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Items:</span>
+                                <span><?php echo !empty($cart_items) ? count($cart_items) : 0; ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <strong>Total:</strong>
+                                <strong>UGX <?php echo number_format($total_price); ?></strong>
+                            </div>
+                            <form method="POST" action="">
                                 <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                                <button type="submit" name="clear_cart" class="btn btn-warning w-100">Clear Cart</button>
-                                <button type="submit" name="checkout" class="btn btn-success w-100 mt-3">Proceed to
-                                    Checkout</button>
+                                <?php if (!empty($cart_items)): ?>
+                                    <button type="submit" name="clear_cart" class="btn btn-warning w-100 mb-2">Clear Cart</button>
+                                    <button type="submit" name="checkout" class="btn btn-success w-100">Proceed to Checkout</button>
+                                <?php else: ?>
+                                    <a href="index.php" class="btn btn-primary w-100">Continue Shopping</a>
+                                <?php endif; ?>
                             </form>
                         </div>
                     </div>
